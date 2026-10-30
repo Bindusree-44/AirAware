@@ -1,74 +1,144 @@
 # AirAware — Telugu–English Agentic AI Air Pollution Chatbot
 
-Small-course-project starter: Streamlit + Gemini 2.5 Flash + n8n + FastAPI + SQLite.
+A small course project built using Streamlit, Gemini, n8n, FastAPI, and SQLite.
 
-## Included data: IMPORTANT
+## Included Data: Important
 
-`data/delhi_pilot.csv` has **90 SYNTHETIC DEMO rows** (3 Delhi stations x 30 days in January 2025). These are fictional and **must never be described as CPCB observations**. The data schema is CPCB-compatible, but this project does not include your previously collected CPCB files. Replace this CSV with verified daily station aggregates and update the UI's synthetic label and `/execute` source label only after validating provenance and units.
+`data/delhi_pilot.csv` contains **90 synthetic demo rows** (3 Delhi stations × 30 days in January 2025). These are fictional data and must never be described as actual CPCB observations.
 
-Required CSV columns: `date,city,station,pm25,pm10,no2`; date as YYYY-MM-DD, numerical concentrations in µg/m³, missing values blank. For a Delhi-only pilot, keep city `Delhi`. Daily averages should come from valid monitored observations with a documented completeness rule.
+The data schema is CPCB-compatible, but this project does not include verified CPCB observations. Replace the demo CSV with verified daily station aggregates only after validating data provenance, units, and completeness.
 
-## Start (macOS/Windows/Linux)
+Required CSV columns: `date,city,station,pm25,pm10,no2`
 
-Install Python 3.10+ and n8n (optional for initial direct API test).
+- Date format: `YYYY-MM-DD`
+- Concentration units: µg/m³
+- Missing values: blank
+- For a Delhi-only pilot, use `Delhi` as the city.
+- Document the completeness rule used to calculate daily averages.
+
+## Start the Application
+
+Install Python 3.10+ and optionally install n8n for workflow automation.
 
 ```bash
 cd AirAware_Source
 python -m venv .venv
-# macOS/Linux: source .venv/bin/activate
-# Windows PowerShell: .venv\Scripts\Activate.ps1
+```
+
+Activate the virtual environment.
+
+**macOS/Linux:**
+```bash
+source .venv/bin/activate
+```
+
+**Windows PowerShell:**
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Install dependencies and configure the environment:
+
+```bash
 pip install -r requirements.txt
-cp .env.example .env                 # Windows: copy .env.example .env
-python generate_sample.py            # optional: already included in the ZIP
+cp .env.example .env
+```
+
+On Windows, use:
+
+```powershell
+copy .env.example .env
+```
+
+Optionally regenerate the sample data:
+
+```bash
+python generate_sample.py
+```
+
+Start the FastAPI backend:
+
+```bash
 python -m uvicorn backend.main:app --reload --port 8000
 ```
 
-Open a SECOND terminal in the same folder (venv activated):
+Open a second terminal in the same project folder, activate the virtual environment, and start Streamlit:
 
 ```bash
 python -m streamlit run frontend/app.py
 ```
 
-In Streamlit first select **Direct API (test mode)**. Browse to http://localhost:8501.
+Open `http://localhost:8501` in your browser. Select **Direct API (test mode)** first.
 
-### Enable Gemini (real LLM parsing)
+## Enable Gemini
 
-Put your real `GEMINI_API_KEY` into `.env`, obtained from https://aistudio.google.com/apikey. No training required. **Never paste your API key into the PPT or commit `.env`.** Restart FastAPI after changing `.env`.
+Obtain an API key from [Google AI Studio](https://aistudio.google.com/apikey) and place it in your local `.env` file.
 
-Model used: `gemini-2.5-flash` via Google's official `google-genai` Python SDK. Without an API key, the app still runs with a **rule-based parsing fallback** and reports `model_used: fallback`; this is not an LLM-powered run.
+Never commit `.env` or publish your API key in your presentation or repository.
 
-### n8n workflow
+Configure the Gemini model using the `GEMINI_MODEL` setting in `.env`. Without an API key, the application can use its rule-based fallback; this should not be described as an LLM-powered run.
 
-Start an n8n instance, e.g. with Docker:
+Restart FastAPI after changing `.env`.
+
+## n8n Workflow
+
+Start n8n locally. One option is Docker:
 
 ```bash
 docker run --rm -it --name airaware-n8n -p 5678:5678 -e N8N_SECURE_COOKIE=false n8nio/n8n
 ```
 
-Use the secure-cookie override only in localhost development, not on public deployments. Go to http://localhost:5678 and import `workflow/airaware_n8n.json` (menu > Import from File). The workflow is: `Webhook -> HTTP Request (Gemini /plan) -> HTTP Request (/execute) -> Respond to Webhook`.
+Use `N8N_SECURE_COOKIE=false` only for local development.
 
-**Important Docker networking:** If n8n is running in Docker but FastAPI runs on your host, set both HTTP Request node URLs to `http://host.docker.internal:8000/plan` and `http://host.docker.internal:8000/execute` (Mac/Windows). On Linux, provide Docker's `--add-host=host.docker.internal:host-gateway` option. If n8n runs directly on your computer, use `http://localhost:8000/...`.
+Open `http://localhost:5678` and import `workflow/airaware_n8n.json`.
 
-Save/publish (activate) your workflow. Switch the Streamlit selector to **n8n automation**, which posts to `http://localhost:5678/webhook/airaware-query`.
+The workflow is:
 
-For testing only, click Listen for Test Event in n8n and update `.env` to use `http://localhost:5678/webhook-test/airaware-query`; test webhook is temporary.
+`Webhook → HTTP Request (/plan) → HTTP Request (/execute) → Respond to Webhook`
 
-## Test questions
+If n8n runs in Docker while FastAPI runs directly on your Mac or Windows computer, configure the HTTP Request node URLs to use:
+
+- `http://host.docker.internal:8000/plan`
+- `http://host.docker.internal:8000/execute`
+
+If n8n runs directly on your computer, use `http://localhost:8000` instead.
+
+Configure and activate the workflow before selecting **n8n automation** in Streamlit. The configured webhook endpoint is:
+
+`http://localhost:5678/webhook/airaware-query`
+
+For testing, n8n's test webhook may use:
+
+`http://localhost:5678/webhook-test/airaware-query`
+
+A test webhook is temporary and requires the workflow to be listening for a test event.
+
+## Example Questions
 
 - `Delhi lo PM2.5 average entha?`
 - `Show daily PM10 graph`
-- `Compare Anand Vihar and R K Puram PM2.5` (comparison currently covers available stations; filtering an exact pair is not implemented)
+- `Compare Anand Vihar and R K Puram PM2.5`
 - `Which day had highest NO2?`
 - `ఢిల్లీలో PM2.5 ఎంత ఉంది?`
 
-## Evaluation for your first review
+Note: Exact station-pair filtering may not be implemented in the current comparison feature.
 
-Compare English / Telugu / Romanized Telugu query intent classification, exact pollutant extraction, numerical correctness vs manual SQL, successful n8n workflow executions, latency. Until real CPCB subset imported, do not claim real pollution findings.
+## Initial Evaluation
+
+Evaluate the project using:
+
+- English, Telugu, and Romanized Telugu query intent classification
+- Correct pollutant extraction
+- Numerical correctness against manual SQL calculations
+- Successful n8n workflow executions
+- Response latency
+
+Until verified CPCB data is imported, do not report the synthetic dataset as evidence of real-world pollution conditions.
 
 ## Limitations
 
-- Demo stations are all in Delhi; no multi-city comparison yet.
-- This is descriptive analytics, not an AQI calculator or forecasting model.
-- Telugu responses use a short Telugu introduction plus a data-grounded English numeric explanation; full Telugu natural-language generation can be added.
-- LLM only proposes a validated query plan. Safe SQL is parameterized and built by Python, not generated dynamically by Gemini.
-- This is a local educational prototype, not a secured production service. Do not expose unauthenticated endpoints or n8n to the public internet.
+- Demo stations are in Delhi; multi-city comparison is not currently included.
+- The application provides descriptive analytics, not an AQI calculator or forecasting model.
+- Telugu responses may include a short Telugu introduction followed by an English numerical explanation.
+- Gemini proposes a query plan; Python validates it and constructs safe, parameterized SQL.
+- This is a local educational prototype, not a production-secured service. Do not expose unauthenticated endpoints or n8n to the public internet.
