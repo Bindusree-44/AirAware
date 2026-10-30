@@ -1,0 +1,25 @@
+# Environment variables and API keys
+.env
+.env.*
+!.env.example
+
+# Python virtual environment
+.venv/
+venv/
+
+# Python cache and testing files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local databases
+data/*.db
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+.venv/
+.DS_Store

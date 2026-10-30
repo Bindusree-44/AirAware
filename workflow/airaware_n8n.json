@@ -1,0 +1,118 @@
+{
+  "name": "AirAware - Code-Mixed Pollution Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "airaware-query",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "3a0fd6ba-016a-4f79-9430-10d50f170001",
+      "name": "1. Incoming Chat (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "airaware-query"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/plan",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ question: $json.body.question }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "3a0fd6ba-016a-4f79-9430-10d50f170002",
+      "name": "2. Gemini Query Planning",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        510,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/execute",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ question: $json.question, plan: $json.plan }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "3a0fd6ba-016a-4f79-9430-10d50f170003",
+      "name": "3. Execute SQLite Analytics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "3a0fd6ba-016a-4f79-9430-10d50f170004",
+      "name": "4. Return Answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1050,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "1. Incoming Chat (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "2. Gemini Query Planning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Gemini Query Planning": {
+      "main": [
+        [
+          {
+            "node": "3. Execute SQLite Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Execute SQLite Analytics": {
+      "main": [
+        [
+          {
+            "node": "4. Return Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
